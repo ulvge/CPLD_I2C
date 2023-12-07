@@ -26,16 +26,13 @@ module ns213_bmu_cpld_top
     input R_BMC_I2C_SCL1,
     inout R_BMC_I2C_SDA1,
 
-    input R_BMC_PCIE_RST_N, // BMC_PCIE复位
-    input R_BMC_PHY_RST_N, // PHY复位
+    output R_BMC_PCIE_RST_N, // BMC_PCIE复位
+    output R_BMC_PHY_RST_N, // PHY复位
     input R_BMC_RSTN_EXT,   // BMC复位
     output R_BMC_RSTN_FPGA,
-    input R_CPU_POR_N,
+    output R_CPU_POR_N,
 
     output USB_SWITCH_EN,
-
-    output CPLD_DEBUG3,
-    output CPLD_DEBUG4,
 
     input R_RESERVE0,
     input R_RESERVE1,
@@ -53,15 +50,15 @@ module ns213_bmu_cpld_top
     input R_RESERVE13,
     input R_RESERVE14,
     input R_RESERVE15,
-    input R_RESERVE16,
-    input R_RESERVE17,
-    input R_RESERVE18,
-    input R_RESERVE19,
+    output R_RESERVE16,
+    output R_RESERVE17,
+    output R_RESERVE18,
+    output R_RESERVE19,
 
     input VCORE_EN,
-    input P1V8_EN,
-    input P1V1_EN,
-    input P3V3_EN,
+    output P1V8_EN,
+    output P1V1_EN,
+    output P3V3_EN,
     input VCORE_PWRGD,
     input P1V8_PWRGD,
     input P3V3_PWRGD,
@@ -88,12 +85,29 @@ module ns213_bmu_cpld_top
     inout R_FPGA_GPIO14,
     inout R_FPGA_GPIO15
 );
-    
+
+	`define POR_BY_SOFT 1'b1
+	`define DELAY_6MS	11'd6
+	`define DELAY_10MS	11'd10 
+
 	wire 	clk, rst_l;
+	wire 	one_ms_pulse;
+	wire 	ALL_PWRGD_w;
+
+	wire 	timer_delay_VCORE_PWRGD;
+	wire 	timer_delay_P1V8_PWRGD;
+	wire 	timer_delay_P3V3_PWRGD;
+	wire 	timer_delay_P1V1_PWRGD;
+
     assign 	clk = FPGA_CLK_50M;
     assign 	rst_l = VCORE_EN;
     //assign 	rst_l = CPLD_RST_N;
+	assign 	cnt_en = 1'b1; 
+	assign 	one_pulse = 1'b1;
 
+
+    assign  QSPI_CSN0_FPGA = QSPI_CSN0;
+    assign 	QSPI_CSN1_FPGA = 1'b1;
     assign 	USB_SWITCH_EN = 1'b1;
     assign 	R_BMC_RSTN_FPGA = R_BMC_RSTN_EXT & R_CPU_POR_N;
 
@@ -106,20 +120,79 @@ module ns213_bmu_cpld_top
             R_FPGA_GPIO11,R_FPGA_GPIO10,R_FPGA_GPIO9,R_FPGA_GPIO8} = PORT1;
 
 
-    wire [3:0] ledout;
+    wire [3:0] debug;
     // bit 3,2,1,0
-    assign {CPLD_LED2_N, CPLD_LED1_N, CPLD_DEBUG3, CPLD_DEBUG4} = ~ledout;
+    assign {R_RESERVE19, R_RESERVE18, R_RESERVE17, R_RESERVE16} = ~debug;
 
-    // assign 	CPLD_DEBUG3 = SCL;
-    // assign 	CPLD_DEBUG4 = SDA;
     i2c i2c_nca9555(
         .clk(clk),
         .SCL(SCL),
         .SDA(SDA),
         .RST(rst_l),
-        .LEDG(ledout),
+        .LEDG(debug),
         .PORT0(PORT0),
         .PORT1(PORT1)
   );
+
+// seqruce step
+	assign	ALL_PWRGD_w = VCORE_EN;
+	assign	P1V8_EN = timer_delay_VCORE_PWRGD;
+	assign	P3V3_EN = timer_delay_P1V8_PWRGD;
+	assign	P1V1_EN = timer_delay_P3V3_PWRGD;
+`ifdef POR_BY_SOFT
+	assign	R_CPU_POR_N = timer_delay_P1V1_PWRGD;
+	assign	R_BMC_PCIE_RST_N = timer_delay_P1V1_PWRGD;
+	assign	R_BMC_PHY_RST_N = timer_delay_P1V1_PWRGD;
+`else
+	assign	R_CPU_POR_N = 1'b1;
+	assign	R_BMC_PCIE_RST_N = 1'b1;
+	assign	R_BMC_PHY_RST_N = 1'b1;
+`endif
   
+//1 ms timer
+	timer_1ms u_timer_1ms(
+	
+	.sys_clk(clk),
+	.sys_rst_n(rst_l),
+	.cnt_en(cnt_en),
+	.cnt_pulse(one_us_pulse),
+	.timeout(one_ms_pulse)
+	 );
+  
+//timer_delay_VCORE_PWRGD
+	timer_n_ms u1_timer_n_ms(
+	.sys_clk(clk),
+	.sys_rst_n(rst_l),
+	.cnt_en(rst_l & VCORE_PWRGD),
+	.cnt_size(`DELAY_6MS),
+	.cnt_pulse(one_ms_pulse),
+	.timeout(timer_delay_VCORE_PWRGD)
+	 );	
+//timer_delay_P1V8_PWRGD
+	timer_n_ms u2_timer_n_ms(
+	.sys_clk(clk),
+	.sys_rst_n(rst_l),
+	.cnt_en(rst_l & P1V8_PWRGD),
+	.cnt_size(`DELAY_6MS),
+	.cnt_pulse(one_ms_pulse),
+	.timeout(timer_delay_P1V8_PWRGD)
+	 );	
+//timer_delay_P3V3_PWRGD
+	timer_n_ms u3_timer_n_ms(
+	.sys_clk(clk),
+	.sys_rst_n(rst_l),
+	.cnt_en(rst_l & P3V3_PWRGD),
+	.cnt_size(`DELAY_6MS),
+	.cnt_pulse(one_ms_pulse),
+	.timeout(timer_delay_P3V3_PWRGD)
+	 );	
+//timer_delay_P1V1_PWRGD
+	timer_n_ms u4_timer_n_ms(
+	.sys_clk(clk),
+	.sys_rst_n(rst_l),
+	.cnt_en(rst_l & P1V1_PWRGD),
+	.cnt_size(`DELAY_10MS),
+	.cnt_pulse(one_ms_pulse),
+	.timeout(timer_delay_P1V1_PWRGD)
+	 );	
 endmodule
