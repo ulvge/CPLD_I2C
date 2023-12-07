@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Project Version="1" Path="E:/3Proj/17BMU/CPLD/I2CIP">
+<Project Version="1" Path="E:/3Proj/17BMU/NS213_BMU">
     <Project_Created_Time></Project_Created_Time>
     <TD_Version>5.0.30786</TD_Version>
     <UCode>00000000</UCode>
@@ -36,7 +36,7 @@
             </File>
         </Verilog>
         <ADC_FILE>
-            <File Path="src/nca9555.adc">
+            <File Path="src/NS213_BMU.adc">
                 <FileInfo>
                     <Attr Name="UsedInSyn" Val="true"/>
                     <Attr Name="UsedInP&R" Val="true"/>
@@ -53,9 +53,9 @@
         </FileSet>
     </FileSets>
     <TOP_MODULE>
-        <LABEL>ns108_cpld_top</LABEL>
-        <MODULE>ns108_cpld_top</MODULE>
-        <CREATEINDEX></CREATEINDEX>
+        <LABEL></LABEL>
+        <MODULE>NS213_BMU_cpld_top</MODULE>
+        <CREATEINDEX>auto</CREATEINDEX>
     </TOP_MODULE>
     <Property>
         <RtlProperty>
@@ -67,7 +67,7 @@
     <Configurations>
     </Configurations>
     <Project_Settings>
-        <Step_Last_Change>2023-11-01 10:53:44.758</Step_Last_Change>
+        <Step_Last_Change>2023-12-07 17:01:53.597</Step_Last_Change>
         <Current_Step>60</Current_Step>
         <Step_Status>true</Step_Status>
     </Project_Settings>

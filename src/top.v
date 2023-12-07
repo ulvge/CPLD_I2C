@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 `include "src/io_deglitch.v"
 
-module ns108_cpld_top
+module NS213_BMU_cpld_top
 (
     input CPLD_CLK_50M,
     input CPLD_RST_N,
