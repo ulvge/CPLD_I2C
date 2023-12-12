@@ -6,10 +6,10 @@ module ns213_bmu_cpld_top
     input FPGA_CLK_50M,
     //input CPLD_RST_N,
 
-    input CPLD_LED0_N,
+    output CPLD_LED0_N,
     output CPLD_LED1_N,
     output CPLD_LED2_N,
-    input CPLD_LED12_N,
+    output DONE,
 
     input BMC_GPIO0,
     input BMC_GPIO1,
@@ -50,10 +50,10 @@ module ns213_bmu_cpld_top
     input R_RESERVE13,
     input R_RESERVE14,
     input R_RESERVE15,
-    output R_RESERVE16,
-    output R_RESERVE17,
-    output R_RESERVE18,
-    output R_RESERVE19,
+    input R_RESERVE16,
+    input R_RESERVE17,
+    input R_RESERVE18,
+    input R_RESERVE19,
 
     input VCORE_EN,
     output P1V8_EN,
@@ -109,7 +109,8 @@ module ns213_bmu_cpld_top
     assign  QSPI_CSN0_FPGA = QSPI_CSN0;
     assign 	QSPI_CSN1_FPGA = 1'b1;
     assign 	USB_SWITCH_EN = 1'b1;
-    assign 	R_BMC_RSTN_FPGA = R_BMC_RSTN_EXT & R_CPU_POR_N;
+    assign 	R_BMC_RSTN_FPGA = R_BMC_RSTN_EXT;
+    //assign 	R_BMC_RSTN_FPGA = 1'bz;//R_BMC_RSTN_EXT & R_CPU_POR_N;
 
 
     wire [7:0] PORT0;
@@ -122,7 +123,7 @@ module ns213_bmu_cpld_top
 
     wire [3:0] debug;
     // bit 3,2,1,0
-    assign {R_RESERVE19, R_RESERVE18, R_RESERVE17, R_RESERVE16} = ~debug;
+    assign {DONE, CPLD_LED2_N, CPLD_LED1_N, CPLD_LED0_N} = ~debug;
 
     i2c i2c_nca9555(
         .clk(clk),

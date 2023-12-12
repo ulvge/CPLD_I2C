@@ -8,7 +8,7 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
     inout [7:0] PORT0;
     inout [7:0] PORT1;
 
-    parameter [6:0] device_address = 7'h26; // 8'h4c
+    parameter [6:0] device_address = 7'h58; // 8'hB0
     parameter [2:0] STATE_IDLE      = 3'h0,//idle
                     STATE_DEV_ADDR  = 3'h1,//the slave addr match
                     STATE_READ      = 3'h2,//the op=read 
@@ -298,6 +298,7 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
         else if (start_detected) begin
             release_sda_start <= 1'b0;
             SDA_output_control <= 1'b1;
+            LEDG[0] <= !LEDG[1];
         end
         else if (lsb_bit)
             begin
@@ -318,7 +319,7 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
                     ((state == STATE_DEV_ADDR) && address_detect && read_write_bit))  begin
                         release_sda_start <= 1'b0;
                         SDA_output_control <= output_shift[7];
-                        LEDG[0] <= !LEDG[0];
+                        LEDG[2] <= !LEDG[2];
                         //for the RESTART and send the addr ACK for 1'b0
                         //for the read and master ack both slave is pull down
                     end
