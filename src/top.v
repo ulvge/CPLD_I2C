@@ -30,7 +30,7 @@ module ns213_bmu_cpld_top
     output R_BMC_PHY_RST_N, // PHY复位
     input R_BMC_RSTN_EXT,   // BMC复位
     output R_BMC_RSTN_FPGA,
-    output R_CPU_POR_N,
+    input R_CPU_POR_N,
 
     output USB_SWITCH_EN,
 
@@ -126,8 +126,8 @@ module ns213_bmu_cpld_top
 
     i2c i2c_nca9555(
         .clk(clk),
-        .SCL(SCL),
-        .SDA(SDA),
+        .SCL(R_BMC_I2C_SCL1),
+        .SDA(R_BMC_I2C_SDA1),
         .RST(rst_l),
         .LEDG(debug),
         .PORT0(PORT0),
@@ -140,11 +140,9 @@ module ns213_bmu_cpld_top
 	assign	P3V3_EN = timer_delay_P1V8_PWRGD;
 	assign	P1V1_EN = timer_delay_P3V3_PWRGD;
 `ifdef POR_BY_SOFT
-	assign	R_CPU_POR_N = timer_delay_P1V1_PWRGD;
 	assign	R_BMC_PCIE_RST_N = timer_delay_P1V1_PWRGD;
 	assign	R_BMC_PHY_RST_N = timer_delay_P1V1_PWRGD;
 `else
-	assign	R_CPU_POR_N = 1'b1;
 	assign	R_BMC_PCIE_RST_N = 1'b1;
 	assign	R_BMC_PHY_RST_N = 1'b1;
 `endif
