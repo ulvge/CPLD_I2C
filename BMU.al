@@ -59,6 +59,14 @@
                     <Attr Name="CompileOrder" Val="6"/>
                 </FileInfo>
             </File>
+            <File Path="src/timer_1us.v">
+                <FileInfo>
+                    <Attr Name="UsedInSyn" Val="true"/>
+                    <Attr Name="UsedInP&R" Val="true"/>
+                    <Attr Name="BelongTo" Val="design_1"/>
+                    <Attr Name="CompileOrder" Val="7"/>
+                </FileInfo>
+            </File>
         </Verilog>
         <ADC_FILE>
             <File Path="src/NS213_BMU.adc">
@@ -85,6 +93,10 @@
     <Property>
     </Property>
     <Device_Settings>
+        <EF2L45UG132B>
+            <done>dedicate</done>
+            <initn>dedicate</initn>
+        </EF2L45UG132B>
     </Device_Settings>
     <Configurations>
     </Configurations>

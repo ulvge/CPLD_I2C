@@ -30,7 +30,7 @@ module ns213_bmu_cpld_top
     output R_BMC_PHY_RST_N, // PHY复位
     input R_BMC_RSTN_EXT,   // BMC复位
     output R_BMC_RSTN_FPGA,
-    input R_CPU_POR_N,
+    output R_CPU_POR_N,
 
     output USB_SWITCH_EN,
 
@@ -52,7 +52,7 @@ module ns213_bmu_cpld_top
     input R_RESERVE15,
     input R_RESERVE16,
     input R_RESERVE17,
-    output R_RESERVE18,
+    input R_RESERVE18,
     output R_RESERVE19,
 
     input VCORE_EN,
@@ -86,18 +86,23 @@ module ns213_bmu_cpld_top
     inout R_FPGA_GPIO15
 );
 
-	`define POR_BY_SOFT 1'b1
+	`define POR_BY_SOFT 1'b0
 	`define DELAY_6MS	11'd6
 	`define DELAY_10MS	11'd10 
+	`define DELAY_50MS	11'd50 
+	`define DELAY_400MS	11'd400 
 
 	wire 	clk, rst_l;
 	wire 	one_ms_pulse;
+	wire 	one_s_pulse;
+	wire 	one_us_pulse;
 	wire 	ALL_PWRGD_w;
 
 	wire 	timer_delay_VCORE_PWRGD;
 	wire 	timer_delay_P1V8_PWRGD;
 	wire 	timer_delay_P3V3_PWRGD;
 	wire 	timer_delay_P1V1_PWRGD;
+	wire 	timer_delay_400MS_P1V1_PWRGD;
 
     assign 	clk = FPGA_CLK_50M;
     assign 	rst_l = P1V8_PWRGD;
@@ -111,12 +116,16 @@ module ns213_bmu_cpld_top
     assign 	USB_SWITCH_EN = 1'b1;
     assign 	R_BMC_RSTN_FPGA = R_BMC_RSTN_EXT;
     //assign 	R_BMC_RSTN_FPGA = 1'bz;//R_BMC_RSTN_EXT & R_CPU_POR_N;
+    
+    assign 	R_CPU_POR_N = timer_delay_400MS_P1V1_PWRGD;
+
+
 
 	wire 	clk_divisor_out;
 
     wire [7:0] PORT0;
-    assign {R_FPGA_GPIO7,R_FPGA_GPIO6,R_FPGA_GPIO5,R_FPGA_GPIO4,
-            R_FPGA_GPIO3,R_FPGA_GPIO2,R_FPGA_GPIO1,R_FPGA_GPIO0} = PORT0;
+    // assign {R_FPGA_GPIO7,R_FPGA_GPIO6,R_FPGA_GPIO5,R_FPGA_GPIO4,
+    //         R_FPGA_GPIO3,R_FPGA_GPIO2,R_FPGA_GPIO1,R_FPGA_GPIO0} = PORT0;
     wire [7:0] PORT1;
     assign {R_FPGA_GPIO15,R_FPGA_GPIO14,R_FPGA_GPIO13,R_FPGA_GPIO12,
             R_FPGA_GPIO11,R_FPGA_GPIO10,R_FPGA_GPIO9,R_FPGA_GPIO8} = PORT1;
@@ -124,9 +133,9 @@ module ns213_bmu_cpld_top
 
     wire [3:0] debug;
     // bit 3,2,1,0
-    // assign {R_RESERVE19, CPLD_LED2_N, CPLD_LED1_N, CPLD_LED0_N} = ~debug;
-    assign CPLD_LED0_N = !R_BMC_I2C_SCL1;
-    assign CPLD_LED1_N = !R_BMC_I2C_SDA1;
+    assign {R_RESERVE19, CPLD_LED2_N, CPLD_LED1_N, CPLD_LED0_N} = ~debug;
+    // assign CPLD_LED0_N = !R_BMC_I2C_SCL1;
+    // assign CPLD_LED1_N = !R_BMC_I2C_SDA1;
     // assign CPLD_LED2_N = !clk_divisor_out;
     
     i2c i2c_nca9555(
@@ -154,13 +163,20 @@ module ns213_bmu_cpld_top
 	assign	R_BMC_PCIE_RST_N = timer_delay_P1V1_PWRGD;
 	assign	R_BMC_PHY_RST_N = timer_delay_P1V1_PWRGD;
 `else
-	assign	R_BMC_PCIE_RST_N = 1'b1;
-	assign	R_BMC_PHY_RST_N = 1'b1;
+	assign	R_BMC_PCIE_RST_N = 1'bz;
+	assign	R_BMC_PHY_RST_N = 1'bz;
 `endif
   
+  //1 us timer
+	timer_1us u_timer_1us(
+	.sys_clk(clk),
+	.sys_rst_n(rst_l),
+	.cnt_en(cnt_en),
+	.cnt_pulse(one_pulse),
+	.timeout(one_us_pulse)
+	 );
 //1 ms timer
 	timer_1ms u_timer_1ms(
-	
 	.sys_clk(clk),
 	.sys_rst_n(rst_l),
 	.cnt_en(cnt_en),
@@ -204,4 +220,14 @@ module ns213_bmu_cpld_top
 	.cnt_pulse(one_ms_pulse),
 	.timeout(timer_delay_P1V1_PWRGD)
 	 );	
+
+//timer_delay_400MS_P1V1_PWRGD
+	timer_n_ms u41_timer_n_ms(
+	.sys_clk(clk),
+	.sys_rst_n(rst_l),
+	.cnt_en(rst_l & P1V1_PWRGD),
+	.cnt_size(`DELAY_400MS),
+	.cnt_pulse(one_ms_pulse),
+	.timeout(timer_delay_400MS_P1V1_PWRGD)
+	 );
 endmodule
