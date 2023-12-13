@@ -110,7 +110,6 @@ module ns213_bmu_cpld_top
 	assign 	cnt_en = 1'b1; 
 	assign 	one_pulse = 1'b1;
 
-
     assign  QSPI_CSN0_FPGA = QSPI_CSN0;
     assign 	QSPI_CSN1_FPGA = 1'b1;
     assign 	USB_SWITCH_EN = 1'b1;
@@ -119,13 +118,11 @@ module ns213_bmu_cpld_top
     
     assign 	R_CPU_POR_N = timer_delay_400MS_P1V1_PWRGD;
 
-
-
 	wire 	clk_divisor_out;
 
     wire [7:0] PORT0;
-    // assign {R_FPGA_GPIO7,R_FPGA_GPIO6,R_FPGA_GPIO5,R_FPGA_GPIO4,
-    //         R_FPGA_GPIO3,R_FPGA_GPIO2,R_FPGA_GPIO1,R_FPGA_GPIO0} = PORT0;
+    assign {R_FPGA_GPIO7,R_FPGA_GPIO6,R_FPGA_GPIO5,R_FPGA_GPIO4,
+            R_FPGA_GPIO3,R_FPGA_GPIO2,R_FPGA_GPIO1,R_FPGA_GPIO0} = PORT0;
     wire [7:0] PORT1;
     assign {R_FPGA_GPIO15,R_FPGA_GPIO14,R_FPGA_GPIO13,R_FPGA_GPIO12,
             R_FPGA_GPIO11,R_FPGA_GPIO10,R_FPGA_GPIO9,R_FPGA_GPIO8} = PORT1;
