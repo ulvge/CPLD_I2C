@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
 `include "src/io_deglitch.v"
+`include "src/clk_divisor.v"
 
 module ns213_bmu_cpld_top
 (
@@ -9,7 +10,6 @@ module ns213_bmu_cpld_top
     output CPLD_LED0_N,
     output CPLD_LED1_N,
     output CPLD_LED2_N,
-    output DONE,
 
     input BMC_GPIO0,
     input BMC_GPIO1,
@@ -52,8 +52,8 @@ module ns213_bmu_cpld_top
     input R_RESERVE15,
     input R_RESERVE16,
     input R_RESERVE17,
-    input R_RESERVE18,
-    input R_RESERVE19,
+    output R_RESERVE18,
+    output R_RESERVE19,
 
     input VCORE_EN,
     output P1V8_EN,
@@ -100,7 +100,7 @@ module ns213_bmu_cpld_top
 	wire 	timer_delay_P1V1_PWRGD;
 
     assign 	clk = FPGA_CLK_50M;
-    assign 	rst_l = VCORE_EN;
+    assign 	rst_l = P1V8_PWRGD;
     //assign 	rst_l = CPLD_RST_N;
 	assign 	cnt_en = 1'b1; 
 	assign 	one_pulse = 1'b1;
@@ -112,6 +112,7 @@ module ns213_bmu_cpld_top
     assign 	R_BMC_RSTN_FPGA = R_BMC_RSTN_EXT;
     //assign 	R_BMC_RSTN_FPGA = 1'bz;//R_BMC_RSTN_EXT & R_CPU_POR_N;
 
+	wire 	clk_divisor_out;
 
     wire [7:0] PORT0;
     assign {R_FPGA_GPIO7,R_FPGA_GPIO6,R_FPGA_GPIO5,R_FPGA_GPIO4,
@@ -123,8 +124,11 @@ module ns213_bmu_cpld_top
 
     wire [3:0] debug;
     // bit 3,2,1,0
-    assign {DONE, CPLD_LED2_N, CPLD_LED1_N, CPLD_LED0_N} = ~debug;
-
+    // assign {R_RESERVE19, CPLD_LED2_N, CPLD_LED1_N, CPLD_LED0_N} = ~debug;
+    assign CPLD_LED0_N = !R_BMC_I2C_SCL1;
+    assign CPLD_LED1_N = !R_BMC_I2C_SDA1;
+    // assign CPLD_LED2_N = !clk_divisor_out;
+    
     i2c i2c_nca9555(
         .clk(clk),
         .SCL(R_BMC_I2C_SCL1),
@@ -133,7 +137,13 @@ module ns213_bmu_cpld_top
         .LEDG(debug),
         .PORT0(PORT0),
         .PORT1(PORT1)
-  );
+    );
+    
+
+	clk_divisor clk_divisor_1s(
+        .sys_clk(clk),
+        .clkout(clk_divisor_out)
+	);
 
 // seqruce step
 	assign	ALL_PWRGD_w = VCORE_EN;

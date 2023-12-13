@@ -1,4 +1,6 @@
 //Implement the parts functions of NCA9555
+
+`include "src/io_deglitch.v"
 module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
     input SCL, RST;//asynchronous reset input
     input clk;
@@ -106,8 +108,10 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
     //---------------------------------------------
     always @ (posedge start_rst or negedge SDA_reg) 
     begin
-        if (start_rst)
+        if (start_rst) begin
             start_detected <= 1'b0;
+            LEDG[1] <= !LEDG[1];
+        end
         else
             start_detected <= SCL_reg;//在SDA下降沿时，如果start_detected = SCL_reg==1 ？ 1 ：0
     end
@@ -126,8 +130,10 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
     //---------------------------------------------
     always @ (posedge stop_rst or posedge SDA_reg)
     begin   
-        if (stop_rst)
+        if (stop_rst) begin
             stop_detected <= 1'b0;
+            LEDG[2] <= !LEDG[2];
+        end
         else
             stop_detected <= SCL_reg;
     end
@@ -178,8 +184,10 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
     begin
         if (~RST)
             state <= STATE_IDLE;
-        else if (start_detected)
+        else if (start_detected) begin
             state <= STATE_DEV_ADDR;
+            LEDG[0] <= !LEDG[0];
+        end
         else if (ack_bit)//at the 9th cycle and change the state by ACK
         begin
             case (state)
@@ -187,10 +195,12 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
                     state <= STATE_IDLE;
 
                 STATE_DEV_ADDR:
-                    if (!address_detect)//addr don't match
+                    if (!address_detect) begin//addr don't match
                         state <= STATE_IDLE;
-                    else if (read_write_bit)// addr match and operation is read
+                    end
+                    else if (read_write_bit) begin // addr match and operation is read
                         state <= STATE_READ;
+                    end
                     else//addr match and operation is write
                         state <= STATE_IDX_PTR;
 
@@ -298,7 +308,6 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
         else if (start_detected) begin
             release_sda_start <= 1'b0;
             SDA_output_control <= 1'b1;
-            LEDG[0] <= !LEDG[1];
         end
         else if (lsb_bit)
             begin
@@ -307,7 +316,7 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
                     !(((state == STATE_DEV_ADDR) && address_detect) ||
                     (state == STATE_IDX_PTR) ||
                     (state == STATE_WRITE)); 
-                LEDG[1] <= !LEDG[1];
+                // LEDG[1] <= !LEDG[1];
                 //when operation is wirte 
                 //addr match gen ACK,the index get gen ACK,and write data gen ACK
             end
@@ -319,7 +328,7 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
                     ((state == STATE_DEV_ADDR) && address_detect && read_write_bit))  begin
                         release_sda_start <= 1'b0;
                         SDA_output_control <= output_shift[7];
-                        LEDG[2] <= !LEDG[2];
+                        // LEDG[2] <= !LEDG[2];
                         //for the RESTART and send the addr ACK for 1'b0
                         //for the read and master ack both slave is pull down
                     end
