@@ -67,6 +67,14 @@
                     <Attr Name="CompileOrder" Val="7"/>
                 </FileInfo>
             </File>
+            <File Path="src/phy_reset_io_deglitch.v">
+                <FileInfo>
+                    <Attr Name="UsedInSyn" Val="true"/>
+                    <Attr Name="UsedInP&R" Val="true"/>
+                    <Attr Name="BelongTo" Val="design_1"/>
+                    <Attr Name="CompileOrder" Val="8"/>
+                </FileInfo>
+            </File>
         </Verilog>
         <ADC_FILE>
             <File Path="src/NS213_BMU.adc">

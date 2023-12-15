@@ -30,7 +30,7 @@ module ns213_bmu_cpld_top
     output R_BMC_PHY_RST_N, // PHY复位
     input R_BMC_RSTN_EXT,   // BMC复位
     output R_BMC_RSTN_FPGA,
-    output R_CPU_POR_N,
+    input R_CPU_POR_N,
 
     output USB_SWITCH_EN,
 
@@ -116,7 +116,6 @@ module ns213_bmu_cpld_top
     assign 	R_BMC_RSTN_FPGA = R_BMC_RSTN_EXT;
     //assign 	R_BMC_RSTN_FPGA = 1'bz;//R_BMC_RSTN_EXT & R_CPU_POR_N;
     
-    assign 	R_CPU_POR_N = timer_delay_400MS_P1V1_PWRGD;
 
 	wire 	clk_divisor_out;
 
@@ -145,7 +144,12 @@ module ns213_bmu_cpld_top
         .PORT1(PORT1)
     );
     
-
+    phy_reset_io_deglitch phy_reset_deglitch(
+        .clk(one_ms_pulse),
+        .rst_l(rst_l),
+        .in(R_CPU_POR_N),
+        .out(R_BMC_PHY_RST_N)
+    );
 	clk_divisor clk_divisor_1s(
         .sys_clk(clk),
         .clkout(clk_divisor_out)
@@ -158,10 +162,8 @@ module ns213_bmu_cpld_top
 	assign	P1V1_EN = timer_delay_P3V3_PWRGD;
 `ifdef POR_BY_SOFT
 	assign	R_BMC_PCIE_RST_N = timer_delay_P1V1_PWRGD;
-	assign	R_BMC_PHY_RST_N = timer_delay_P1V1_PWRGD;
 `else
 	assign	R_BMC_PCIE_RST_N = 1'bz;
-	assign	R_BMC_PHY_RST_N = 1'bz;
 `endif
   
   //1 us timer
