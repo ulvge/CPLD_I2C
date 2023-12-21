@@ -1,6 +1,7 @@
 //Implement the parts functions of NCA9555
 
 `include "src/io_deglitch.v"
+`include "src/global_define.v"
 module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
     input SCL, RST;//asynchronous reset input
     input clk;
@@ -36,6 +37,7 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
     reg [7:0]       r5_port_1_pr; // polarity_inversion not support
     reg [7:0]       r6_port_0_config = 8'hFF; // 1:input;0:output
     reg [7:0]       r7_port_1_config = 8'hFF;
+    reg [7:0]       r8_version = `VERSION;
     //delay  release_sda
 	 parameter RELEASE_SDA_COUNT_WIDTH = 7;
 	 //parameter RELEASE_SDA_COUNT_MAX = 2**RELEASE_SDA_COUNT_WIDTH-1;
@@ -287,6 +289,7 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
                 // 8'h05: output_shift <= r5_port_1_pr;
                 8'h06: output_shift <= r6_port_0_config;
                 8'h07: output_shift <= r7_port_1_config;
+                8'h08: output_shift <= r8_version;
             endcase
         end
         else

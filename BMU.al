@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Project Version="3" Minor="2" Path="E:/3Proj/17BMU/NS213_BMU">
+<Project Version="3" Minor="2" Path="E:/3Proj/17CMU/1BMU_CPLD/NS213_BMU_CPLD">
     <Project_Created_Time></Project_Created_Time>
     <TD_Version>5.6.86856</TD_Version>
     <UCode>00000000</UCode>
