@@ -11,10 +11,10 @@ module ns213_bmu_cpld_top
     output CPLD_LED1_N,
     output CPLD_LED2_N,
 
-    input BMC_GPIO0,
-    input BMC_GPIO1,
-    input BMC_GPIO2,
-    input BMC_GPIO3,
+    input BMC_GPIO0, // 故障切换BIOS信号，默认为1hz方波，故障需换bios时2min没有波形
+    input BMC_GPIO1, // update 默认是高，0 更新主
+    input BMC_GPIO2, // updateDone, 默认为高，0有效
+    input BMC_GPIO3, // update 默认是高，0 更新从
 
     input GPIO_RSVD1,// unsed
     input GPIO_RSVD2,// unsed
@@ -83,7 +83,7 @@ module ns213_bmu_cpld_top
     inout R_FPGA_GPIO12,
     inout R_FPGA_GPIO13,
     inout R_FPGA_GPIO14,
-    inout R_FPGA_GPIO15
+    inout R_FPGA_GPIO15 // // update 默认是高，0 更新从
 );
 
 	`define POR_BY_SOFT 1'b0
@@ -92,6 +92,15 @@ module ns213_bmu_cpld_top
 	`define DELAY_50MS	11'd50 
 	`define DELAY_100MS	11'd100 
 	`define DELAY_2S	9'd2
+	`define DELAY_10S	9'd10
+	`define DELAY_20S	9'd20
+	`define DELAY_120S	9'd120
+	`define DELAY_200S	9'd200
+
+    parameter 		ST_BIOS_MAIN        = 0,
+					ST_BIOS_SECOND	    = 1,
+					ST_UPDATE_MAIN   	= 2,
+					ST_UPDATE_SECOND   	= 3;
 
 	wire 	clk, rst_l;
 	wire 	one_ms_pulse;
@@ -105,6 +114,7 @@ module ns213_bmu_cpld_top
 	wire 	timer_delay_P1V1_PWRGD;
 	wire 	timer_delay_100MS_P1V1_PWRGD;
 	wire 	timer_delay_2S_P1V1_PWRGD;
+	wire 	isHearBeat;
 
     assign 	clk = FPGA_CLK_50M;
     assign 	rst_l = P1V8_PWRGD;
@@ -112,12 +122,9 @@ module ns213_bmu_cpld_top
 	assign 	cnt_en = 1'b1; 
 	assign 	one_pulse = 1'b1;
 
-    assign  QSPI_CSN0_FPGA = QSPI_CSN0;
-    assign 	QSPI_CSN1_FPGA = 1'b1;
     assign 	USB_SWITCH_EN = 1'b1;
     assign 	R_BMC_RSTN_FPGA = R_BMC_RSTN_EXT;
     //assign 	R_BMC_RSTN_FPGA = 1'bz;//R_BMC_RSTN_EXT & R_CPU_POR_N;
-    assign 	R_CPU_POR_N = timer_delay_2S_P1V1_PWRGD ? 1'bz : timer_delay_100MS_P1V1_PWRGD;
     
 
 	wire 	clk_divisor_out;
@@ -133,8 +140,6 @@ module ns213_bmu_cpld_top
     wire [3:0] debug;
     // bit 3,2,1,0
     //assign {R_RESERVE19, CPLD_LED2_N, CPLD_LED1_N, CPLD_LED0_N} = ~debug;
-    assign CPLD_LED0_N = timer_delay_2S_P1V1_PWRGD;
-    assign CPLD_LED1_N = 1'b1;
     
     i2c i2c_nca9555(
         .clk(clk),
@@ -249,4 +254,107 @@ module ns213_bmu_cpld_top
 	.cnt_pulse(one_s_pulse),
 	.timeout(timer_delay_2S_P1V1_PWRGD)
 	 );
+
+//timer_delay_POWER_ON_2MIN
+	timer_n_s u81_timer_n_s(
+	.sys_clk(clk),
+	.sys_rst_n(rst_l),
+	.cnt_en(rst_l & R_CPU_POR_N),
+	.cnt_size(`DELAY_120S),
+	.cnt_pulse(one_s_pulse),
+	.timeout(timer_delay_POWER_ON_2MIN)
+	 );
+
+
+    check_1hz check_1hz_deglitch(
+        .clk(one_ms_pulse),
+        .rst_l(rst_l),
+        .in(BMC_GPIO0),
+        .out(isHearBeat)
+    );
+
+// control state machine
+	reg 	[9:0] current_state;
+    reg CPU_POR_RST_EN;
+	always@( posedge clk or negedge rst_l) 
+	if(~rst_l)
+        current_state <= ST_BIOS_MAIN;
+    else begin
+        CPU_POR_RST_EN = 1'b0;
+    case(current_state)
+        ST_BIOS_MAIN: begin
+            if(timer_delay_POWER_ON_2MIN & !isHearBeat) begin
+                current_state = ST_BIOS_SECOND;
+                CPU_POR_RST_EN = 1'b1;
+            end
+            else if(timer_delay_POWER_ON_2MIN & !R_FPGA_GPIO15)
+                current_state = ST_UPDATE_SECOND;
+            else
+                current_state = current_state;
+            end
+        ST_BIOS_SECOND: begin
+            if(!BMC_GPIO1_reg)
+                current_state = ST_UPDATE_MAIN;
+            else
+                current_state = ST_BIOS_SECOND;
+            end
+        ST_UPDATE_MAIN: begin
+            if(!BMC_GPIO2_reg) begin
+                current_state = ST_BIOS_MAIN;
+                CPU_POR_RST_EN = 1'b1;
+            end
+            else
+                current_state = ST_UPDATE_MAIN;
+            end
+        ST_UPDATE_SECOND: begin
+            if(!BMC_GPIO2_reg)
+                current_state = ST_BIOS_MAIN;
+            else
+                current_state = ST_UPDATE_SECOND;
+            end
+        default:
+                current_state = ST_BIOS_MAIN;
+    endcase
+    end
+
+
+    wire CPU_POR_RST_OUT;
+    POR_RESET POR_RESET_deglitch(
+        .clk(clk),
+        .rst_l(rst_l),
+        .in(CPU_POR_RST_EN),
+        .out(CPU_POR_RST_OUT)
+    );
+    
+    wire BMC_GPIO1_reg, BMC_GPIO2_reg;
+    delay_deglitch gpiog1(
+		.clk(clk),
+		.rst_l(rst_l),
+		.in(BMC_GPIO1),
+		.out(BMC_GPIO1_reg)
+	); 
+    delay_deglitch gpiog2(
+		.clk(clk),
+		.rst_l(rst_l),
+		.in(BMC_GPIO2),
+		.out(BMC_GPIO2_reg)
+	); 
+
+    assign  QSPI_CSN0_FPGA = (current_state == ST_BIOS_MAIN | current_state == ST_UPDATE_MAIN) ? QSPI_CSN0 : 1'b1;
+    assign 	QSPI_CSN1_FPGA = (current_state == ST_BIOS_SECOND | current_state == ST_UPDATE_SECOND) ? QSPI_CSN0 : 1'b1;
+    
+    // 刚上电的时候,2s内。timer_delay_100MS_P1V1_PWRGD
+    // 2s后,timer_delay_2S_P1V1_PWRGD释放
+    // 2s后，如果有CPU_POR_RST_OUT，按CPU_POR_RST_OUT
+    //assign 	R_CPU_POR_N = timer_delay_2S_P1V1_PWRGD ? 1'bz : timer_delay_100MS_P1V1_PWRGD;
+    assign 	R_CPU_POR_N = !timer_delay_2S_P1V1_PWRGD ? timer_delay_100MS_P1V1_PWRGD :
+                        !CPU_POR_RST_OUT ? 1'b0 : 1'bz;
+
+
+    assign {CPLD_LED1_N, CPLD_LED0_N}  = current_state == ST_BIOS_MAIN ? ~2'b00 :
+                                          current_state == ST_UPDATE_MAIN ? ~2'b01 :
+                                          current_state == ST_BIOS_SECOND ? ~2'b10 :
+                                          current_state == ST_UPDATE_SECOND ? ~2'b11 : ~2'b00;
+
+    assign CPLD_LED2_N = CPU_POR_RST_OUT ? 1'b0 : 1'b1;
 endmodule
