@@ -12,9 +12,9 @@ module ns213_bmu_cpld_top
     output CPLD_LED2_N,
 
     input BMC_GPIO0, // 故障切换BIOS信号，默认为1hz方波，故障需换bios时2min没有波形
-    input BMC_GPIO1, // update 默认是高，0 更新主
-    input BMC_GPIO2, // updateDone, 默认为高，0有效
-    input BMC_GPIO3, // update 默认是高，0 更新从
+    input BMC_GPIO1,
+    input BMC_GPIO2,
+    input BMC_GPIO3,
 
     input GPIO_RSVD1,// unsed
     input GPIO_RSVD2,// unsed
@@ -83,7 +83,7 @@ module ns213_bmu_cpld_top
     inout R_FPGA_GPIO12,
     inout R_FPGA_GPIO13,
     inout R_FPGA_GPIO14,
-    inout R_FPGA_GPIO15 // // update 默认是高，0 更新从
+    inout R_FPGA_GPIO15
 );
 
 	`define POR_BY_SOFT 1'b0
@@ -136,6 +136,7 @@ module ns213_bmu_cpld_top
     assign {R_FPGA_GPIO15,R_FPGA_GPIO14,R_FPGA_GPIO13,R_FPGA_GPIO12,
             R_FPGA_GPIO11,R_FPGA_GPIO10,R_FPGA_GPIO9,R_FPGA_GPIO8} = PORT1;
 
+    wire [7:0] UPDATE_BIOS;
 
     wire [3:0] debug;
     // bit 3,2,1,0
@@ -148,7 +149,8 @@ module ns213_bmu_cpld_top
         .RST(rst_l),
         .LEDG(debug),
         .PORT0(PORT0),
-        .PORT1(PORT1)
+        .PORT1(PORT1),
+        .UPDATEBIOS(UPDATE_BIOS)
     );
 
     phy_reset_io_deglitch phy_reset_deglitch(
@@ -274,6 +276,10 @@ module ns213_bmu_cpld_top
     );
 
 // control state machine
+    
+    assign is_update_main = UPDATE_BIOS[0]; // 默认是高
+    assign is_update_second = UPDATE_BIOS[1]; // 默认是高
+    assign is_update_done = UPDATE_BIOS[2]; // 默认是高
 	reg 	[9:0] current_state;
     reg CPU_POR_RST_EN;
 	always@( posedge clk or negedge rst_l) 
@@ -287,19 +293,19 @@ module ns213_bmu_cpld_top
                 current_state = ST_BIOS_SECOND;
                 CPU_POR_RST_EN = 1'b1;
             end
-            else if(timer_delay_POWER_ON_2MIN & !R_FPGA_GPIO15)
+            else if(timer_delay_POWER_ON_2MIN & !is_update_second)
                 current_state = ST_UPDATE_SECOND;
             else
                 current_state = current_state;
             end
         ST_BIOS_SECOND: begin
-            if(!BMC_GPIO1_reg)
+            if(!is_update_main)
                 current_state = ST_UPDATE_MAIN;
             else
                 current_state = ST_BIOS_SECOND;
             end
         ST_UPDATE_MAIN: begin
-            if(!BMC_GPIO2_reg) begin
+            if(!is_update_done) begin
                 current_state = ST_BIOS_MAIN;
                 CPU_POR_RST_EN = 1'b1;
             end
@@ -307,8 +313,10 @@ module ns213_bmu_cpld_top
                 current_state = ST_UPDATE_MAIN;
             end
         ST_UPDATE_SECOND: begin
-            if(!BMC_GPIO2_reg)
+            if(!is_update_done) begin
                 current_state = ST_BIOS_MAIN;
+                CPU_POR_RST_EN = 1'b1;
+            end
             else
                 current_state = ST_UPDATE_SECOND;
             end
@@ -326,20 +334,6 @@ module ns213_bmu_cpld_top
         .out(CPU_POR_RST_OUT)
     );
     
-    wire BMC_GPIO1_reg, BMC_GPIO2_reg;
-    delay_deglitch gpiog1(
-		.clk(clk),
-		.rst_l(rst_l),
-		.in(BMC_GPIO1),
-		.out(BMC_GPIO1_reg)
-	); 
-    delay_deglitch gpiog2(
-		.clk(clk),
-		.rst_l(rst_l),
-		.in(BMC_GPIO2),
-		.out(BMC_GPIO2_reg)
-	); 
-
     assign  QSPI_CSN0_FPGA = (current_state == ST_BIOS_MAIN | current_state == ST_UPDATE_MAIN) ? QSPI_CSN0 : 1'b1;
     assign 	QSPI_CSN1_FPGA = (current_state == ST_BIOS_SECOND | current_state == ST_UPDATE_SECOND) ? QSPI_CSN0 : 1'b1;
     
@@ -356,5 +350,7 @@ module ns213_bmu_cpld_top
                                           current_state == ST_BIOS_SECOND ? ~2'b10 :
                                           current_state == ST_UPDATE_SECOND ? ~2'b11 : ~2'b00;
 
-    assign CPLD_LED2_N = CPU_POR_RST_OUT ? 1'b0 : 1'b1;
+    // assign CPLD_LED0_N = is_update_main ? 1'b0 : 1'b1;
+    // assign CPLD_LED1_N = is_update_second ? 1'b0 : 1'b1;
+    // assign CPLD_LED2_N = is_update_done ? 1'b0 : 1'b1;
 endmodule

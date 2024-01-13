@@ -2,7 +2,7 @@
 
 `include "src/io_deglitch.v"
 `include "src/global_define.v"
-module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
+module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1, UPDATEBIOS);
     input SCL, RST;//asynchronous reset input
     input clk;
     inout SDA;
@@ -10,6 +10,7 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
 
     inout [7:0] PORT0;
     inout [7:0] PORT1;
+    output [7:0] UPDATEBIOS;
 
     parameter [6:0] device_address = 7'h58; // 8'hB0
     parameter [2:0] STATE_IDLE      = 3'h0,//idle
@@ -38,6 +39,7 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
     reg [7:0]       r6_port_0_config = 8'hFF; // 1:input;0:output
     reg [7:0]       r7_port_1_config = 8'hFF;
     reg [7:0]       r8_version = `VERSION;
+    reg [7:0]       r9_update_bios = 8'hFF; // update BIOS Related
     //delay  release_sda
 	 parameter RELEASE_SDA_COUNT_WIDTH = 7;
 	 //parameter RELEASE_SDA_COUNT_MAX = 2**RELEASE_SDA_COUNT_WIDTH-1;
@@ -103,6 +105,10 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
     assign PORT1[5] = (r7_port_1_config[5] == 1'b0) ? r3_port_1_write[5] : 1'bz;
     assign PORT1[6] = (r7_port_1_config[6] == 1'b0) ? r3_port_1_write[6] : 1'bz;
     assign PORT1[7] = (r7_port_1_config[7] == 1'b0) ? r3_port_1_write[7] : 1'bz;
+    
+    assign UPDATEBIOS[0] = r9_update_bios[0];
+    assign UPDATEBIOS[1] = r9_update_bios[1];
+    assign UPDATEBIOS[2] = r9_update_bios[2];
     //-----------------for LED------------------------
     reg [3:0] LEDG;
     //---------------------------------------------
@@ -266,6 +272,7 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
                 // 8'h05: r5_port_1_pr <= input_shift;
                 8'h06: r6_port_0_config <= input_shift;
                 8'h07: r7_port_1_config <= input_shift;
+                8'h09: r9_update_bios <= input_shift;
             endcase
     end
 
@@ -290,6 +297,7 @@ module i2c(clk, SCL, SDA, RST, LEDG, PORT0, PORT1);
                 8'h06: output_shift <= r6_port_0_config;
                 8'h07: output_shift <= r7_port_1_config;
                 8'h08: output_shift <= r8_version;
+                8'h09: output_shift <= r9_update_bios;
             endcase
         end
         else
