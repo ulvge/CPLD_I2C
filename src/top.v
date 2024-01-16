@@ -95,12 +95,14 @@ module ns213_bmu_cpld_top
 	`define DELAY_10S	9'd10
 	`define DELAY_20S	9'd20
 	`define DELAY_120S	9'd120
+	`define DELAY_150S	9'd150
 	`define DELAY_200S	9'd200
 
     parameter 		ST_BIOS_MAIN        = 0,
 					ST_BIOS_SECOND	    = 1,
 					ST_UPDATE_MAIN   	= 2,
 					ST_UPDATE_SECOND   	= 3;
+
 
 	wire 	clk, rst_l;
 	wire 	one_ms_pulse;
@@ -122,7 +124,7 @@ module ns213_bmu_cpld_top
 	assign 	cnt_en = 1'b1; 
 	assign 	one_pulse = 1'b1;
 
-    assign 	USB_SWITCH_EN = 1'b1;
+    assign 	USB_SWITCH_EN = timer_delay_150S_P1V1_PWRGD;
     assign 	R_BMC_RSTN_FPGA = R_BMC_RSTN_EXT;
     //assign 	R_BMC_RSTN_FPGA = 1'bz;//R_BMC_RSTN_EXT & R_CPU_POR_N;
     
@@ -255,6 +257,15 @@ module ns213_bmu_cpld_top
 	.cnt_size(`DELAY_2S),
 	.cnt_pulse(one_s_pulse),
 	.timeout(timer_delay_2S_P1V1_PWRGD)
+	 );
+//timer_delay_150S_P1V1_PWRGD
+	timer_n_s u2_timer_n_s(                                      
+	.sys_clk(clk),
+	.sys_rst_n(rst_l),
+	.cnt_en(rst_l & P1V1_PWRGD),
+	.cnt_size(`DELAY_150S),
+	.cnt_pulse(one_s_pulse),
+	.timeout(timer_delay_150S_P1V1_PWRGD)
 	 );
 
 //timer_delay_POWER_ON_2MIN
