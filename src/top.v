@@ -271,8 +271,8 @@ module ns213_bmu_cpld_top
 //timer_delay_POWER_ON_2MIN
 	timer_n_s u81_timer_n_s(
 	.sys_clk(clk),
-	.sys_rst_n(rst_l),
-	.cnt_en(rst_l & R_CPU_POR_N),
+	.sys_rst_n(rst_l & R_CPU_POR_N & R_BMC_RSTN_EXT),
+	.cnt_en(rst_l),
 	.cnt_size(`DELAY_120S),
 	.cnt_pulse(one_s_pulse),
 	.timeout(timer_delay_POWER_ON_2MIN)
