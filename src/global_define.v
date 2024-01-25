@@ -1,1 +1,1 @@
-`define VERSION	8'h01
+`define VERSION	8'h02

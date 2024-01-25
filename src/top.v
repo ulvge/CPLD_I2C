@@ -125,8 +125,7 @@ module ns213_bmu_cpld_top
 	assign 	one_pulse = 1'b1;
 
     assign 	USB_SWITCH_EN = timer_delay_150S_P1V1_PWRGD;
-    assign 	R_BMC_RSTN_FPGA = R_BMC_RSTN_EXT;
-    //assign 	R_BMC_RSTN_FPGA = 1'bz;//R_BMC_RSTN_EXT & R_CPU_POR_N;
+    assign 	R_BMC_RSTN_FPGA = R_BMC_RSTN_EXT_delay;
     
 
 	wire 	clk_divisor_out;
@@ -273,7 +272,7 @@ module ns213_bmu_cpld_top
 	.sys_clk(clk),
 	.sys_rst_n(rst_l & R_CPU_POR_N & R_BMC_RSTN_EXT),
 	.cnt_en(rst_l),
-	.cnt_size(`DELAY_120S),
+	.cnt_size(`DELAY_150S),
 	.cnt_pulse(one_s_pulse),
 	.timeout(timer_delay_POWER_ON_2MIN)
 	 );
@@ -285,6 +284,16 @@ module ns213_bmu_cpld_top
         .in(BMC_GPIO0),
         .out(isHearBeat)
     );
+    
+//R_BMC_RSTN_EXT_delay
+	timer_n_ms u44_timer_n_ms(
+	.sys_clk(clk),
+	.sys_rst_n(rst_l),
+	.cnt_en(R_BMC_RSTN_EXT),
+	.cnt_size(`DELAY_100MS),
+	.cnt_pulse(one_ms_pulse),
+	.timeout(R_BMC_RSTN_EXT_delay)
+	 );	
 
 // control state machine
     
@@ -353,7 +362,8 @@ module ns213_bmu_cpld_top
     // 2s后，如果有CPU_POR_RST_OUT，按CPU_POR_RST_OUT
     //assign 	R_CPU_POR_N = timer_delay_2S_P1V1_PWRGD ? 1'bz : timer_delay_100MS_P1V1_PWRGD;
     assign 	R_CPU_POR_N = !timer_delay_2S_P1V1_PWRGD ? timer_delay_100MS_P1V1_PWRGD :
-                        !CPU_POR_RST_OUT ? 1'b0 : 1'bz;
+                        !CPU_POR_RST_OUT ? 1'b0 :
+                        !R_BMC_RSTN_EXT_delay ? 1'b0 : 1'bz;
 
 
     assign {CPLD_LED1_N, CPLD_LED0_N}  = current_state == ST_BIOS_MAIN ? ~2'b00 :
