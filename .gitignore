@@ -28,3 +28,4 @@
 # cpld
 *.db
 *.area
+*.f

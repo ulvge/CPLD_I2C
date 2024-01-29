@@ -307,42 +307,42 @@ module ns213_bmu_cpld_top
         current_state <= ST_BIOS_MAIN;
     else begin
         CPU_POR_RST_EN = 1'b0;
-    case(current_state)
-        ST_BIOS_MAIN: begin
-            if(timer_delay_POWER_ON_2MIN & !isHearBeat) begin
-                current_state = ST_BIOS_SECOND;
-                CPU_POR_RST_EN = 1'b1;
-            end
-            else if(timer_delay_POWER_ON_2MIN & !is_update_second)
-                current_state = ST_UPDATE_SECOND;
-            else
-                current_state = current_state;
-            end
-        ST_BIOS_SECOND: begin
-            if(!is_update_main)
-                current_state = ST_UPDATE_MAIN;
-            else
-                current_state = ST_BIOS_SECOND;
-            end
-        ST_UPDATE_MAIN: begin
-            if(!is_update_done) begin
-                current_state = ST_BIOS_MAIN;
-                CPU_POR_RST_EN = 1'b1;
-            end
-            else
-                current_state = ST_UPDATE_MAIN;
-            end
-        ST_UPDATE_SECOND: begin
-            if(!is_update_done) begin
-                current_state = ST_BIOS_MAIN;
-                CPU_POR_RST_EN = 1'b1;
-            end
-            else
-                current_state = ST_UPDATE_SECOND;
-            end
-        default:
-                current_state = ST_BIOS_MAIN;
-    endcase
+    // case(current_state)
+    //     ST_BIOS_MAIN: begin
+    //         if(timer_delay_POWER_ON_2MIN & !isHearBeat) begin
+    //             current_state = ST_BIOS_SECOND;
+    //             CPU_POR_RST_EN = 1'b1;
+    //         end
+    //         else if(timer_delay_POWER_ON_2MIN & !is_update_second)
+    //             current_state = ST_UPDATE_SECOND;
+    //         else
+    //             current_state = current_state;
+    //         end
+    //     ST_BIOS_SECOND: begin
+    //         if(!is_update_main)
+    //             current_state = ST_UPDATE_MAIN;
+    //         else
+    //             current_state = ST_BIOS_SECOND;
+    //         end
+    //     ST_UPDATE_MAIN: begin
+    //         if(!is_update_done) begin
+    //             current_state = ST_BIOS_MAIN;
+    //             CPU_POR_RST_EN = 1'b1;
+    //         end
+    //         else
+    //             current_state = ST_UPDATE_MAIN;
+    //         end
+    //     ST_UPDATE_SECOND: begin
+    //         if(!is_update_done) begin
+    //             current_state = ST_BIOS_MAIN;
+    //             CPU_POR_RST_EN = 1'b1;
+    //         end
+    //         else
+    //             current_state = ST_UPDATE_SECOND;
+    //         end
+    //     default:
+    //             current_state = ST_BIOS_MAIN;
+    // endcase
     end
 
 
@@ -367,9 +367,9 @@ module ns213_bmu_cpld_top
 
 
     assign {CPLD_LED1_N, CPLD_LED0_N}  = current_state == ST_BIOS_MAIN ? ~2'b00 :
-                                          current_state == ST_UPDATE_MAIN ? ~2'b01 :
-                                          current_state == ST_BIOS_SECOND ? ~2'b10 :
-                                          current_state == ST_UPDATE_SECOND ? ~2'b11 : ~2'b00;
+    current_state == ST_UPDATE_MAIN ? ~2'b01 :
+    current_state == ST_BIOS_SECOND ? ~2'b10 :
+    current_state == ST_UPDATE_SECOND ? ~2'b11 : ~2'b00;
 
     // assign CPLD_LED0_N = is_update_main ? 1'b0 : 1'b1;
     // assign CPLD_LED1_N = is_update_second ? 1'b0 : 1'b1;
