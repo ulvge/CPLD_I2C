@@ -366,12 +366,12 @@ module ns213_bmu_cpld_top
                         !R_BMC_RSTN_EXT_delay ? 1'b0 : 1'bz;
 
 
-    assign {CPLD_LED1_N, CPLD_LED0_N}  = current_state == ST_BIOS_MAIN ? ~2'b00 :
+    assign {CPLD_LED2_N, CPLD_LED0_N}  = current_state == ST_BIOS_MAIN ? ~2'b00 :
     current_state == ST_UPDATE_MAIN ? ~2'b01 :
     current_state == ST_BIOS_SECOND ? ~2'b10 :
     current_state == ST_UPDATE_SECOND ? ~2'b11 : ~2'b00;
 
     // assign CPLD_LED0_N = is_update_main ? 1'b0 : 1'b1;
-    // assign CPLD_LED1_N = is_update_second ? 1'b0 : 1'b1;
+    assign CPLD_LED1_N = isHearBeat ? BMC_GPIO0 : !R_CPU_POR_N;
     // assign CPLD_LED2_N = is_update_done ? 1'b0 : 1'b1;
 endmodule
